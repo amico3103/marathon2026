@@ -46,7 +46,7 @@ public class GuestSessionService(
         GroupReservation group = await GetGroupReservationAndValidateAsync(request.GroupReservationId);
 
         Task<Reservation?> reservationTask = reservationRepository.GetReservationByIdAsync(group.ReservationId);
-        Task<int> countTask = guestSessionRepository.CountByGroupReservationId(group.GroupReservationId);
+        Task<int> countTask = guestSessionRepository.CountJoinedGuestsAsync(group.GroupReservationId);
 
         Reservation reservation = await reservationTask ?? throw new GroupReservationExpiredException($"Associated reservation for group '{request.GroupReservationId}' not found.");
 
@@ -247,11 +247,7 @@ public class GuestSessionService(
 
     private async Task<int> GetCurrentParticipantCountAsync(string groupReservationId)
     {
-        var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
-
-        // Owner is always 1 active participant. 
-        // If sessions is null/empty, it safely evaluates to 0 joined guests + 1 owner = 1.
-        return (sessions?.Count ?? 0) + 1;
+        return await guestSessionRepository.CountJoinedGuestsAsync(groupReservationId) + 1;
     }
 
     private async Task ValidateGroupReservationId(string groupReservationId) => await GetGroupReservationAndValidateAsync(groupReservationId);
@@ -317,21 +313,6 @@ public class GuestSessionService(
         {
             throw new ActionForbiddenException("Only the reservation owner can perform this action.");
         }
-    }
-
-    public async Task CreateGroupOwnerSessionAsync(string userId, string groupReservationId)
-    {
-        var session = new GuestSession()
-        {
-            Id = Guid.NewGuid().ToString(),
-            GroupReservationId = groupReservationId,
-            GuestName = "Owner",
-            Dishes = [],
-            IsOwnerSession = true,
-            OwnerUserId = userId,
-        };
-
-        await guestSessionRepository.SaveAsync(session);
     }
 
     public async Task<GetGuestSessionResponse> GetGuestSessionInfoAsync(string guestSessionId)

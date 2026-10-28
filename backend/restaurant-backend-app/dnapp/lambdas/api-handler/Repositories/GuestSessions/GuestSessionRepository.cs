@@ -1,4 +1,6 @@
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using APIHandler.Constants;
 using APIHandler.Entities;
 using System.Collections.Generic;
@@ -7,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace APIHandler.Repositories.GuestSessions;
 
-public class GuestSessionRepository(IDynamoDBContext context) : IGuestSessionRepository
+public class GuestSessionRepository(IDynamoDBContext context, IAmazonDynamoDB dynamoDb) : IGuestSessionRepository
 {
     public async Task<GuestSession?> GetByGuestSessionId(string id) => await context.LoadAsync<GuestSession?>(id, new LoadConfig()
     {
@@ -50,7 +52,7 @@ public class GuestSessionRepository(IDynamoDBContext context) : IGuestSessionRep
         OverrideTableName = ResourceNames.GuestSessionTableName
     });
 
-    public async Task<int> CountByGroupReservationId(string groupReservationId)
+    public async Task<int> CountJoinedGuestsAsync(string groupReservationId)
     {
         List<GuestSession> result = await context.QueryAsync<GuestSession>(groupReservationId, new QueryConfig
         {
@@ -58,7 +60,33 @@ public class GuestSessionRepository(IDynamoDBContext context) : IGuestSessionRep
             IndexName = GlobalSecondaryIndexes.GuestSession.GroupReservationId
         }).GetRemainingAsync();
 
-        return result.Count;
+        return result.Count(session => !session.IsOwnerSession);
+    }
+
+    public async Task SaveOwnerIfAbsentAsync(GuestSession session)
+    {
+        try
+        {
+            await dynamoDb.PutItemAsync(new PutItemRequest
+            {
+                TableName = ResourceNames.GuestSessionTableName,
+                ConditionExpression = "attribute_not_exists(guestSessionId)",
+                Item = new Dictionary<string, AttributeValue>
+                {
+                    ["guestSessionId"] = new() { S = session.Id },
+                    ["groupReservationId"] = new() { S = session.GroupReservationId },
+                    ["guestName"] = new() { S = session.GuestName },
+                    ["dishes"] = new() { L = [] },
+                    ["isOwnerSession"] = new() { N = "1" },
+                    ["ownerUserId"] = new() { S = session.OwnerUserId },
+                    ["isSubmitted"] = new() { N = "0" }
+                }
+            });
+        }
+        catch (ConditionalCheckFailedException)
+        {
+            // A concurrent request already created the deterministic owner session.
+        }
     }
 
     public async Task DeleteAsync(GuestSession session)
