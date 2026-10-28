@@ -7,8 +7,8 @@ info:
     name: API Support
 
 servers:
-  - url: https://eknqcvq3l1.execute-api.us-west-2.amazonaws.com/develop
-    description: Production environment
+  - url: https://xlwtoyalz8.execute-api.eu-north-1.amazonaws.com/develop
+    description: Development environment
 
 tags:
   - name: Guest Sessions
@@ -279,7 +279,7 @@ paths:
       tags:
         - Guest Sessions
       summary: Get all sessions for group reservation
-      description: Retrieves all guest sessions for a group reservation
+      description: Retrieves the owner and guest sessions for a group reservation. Only the reservation owner can access this endpoint.
       operationId: getAllSessionsForGroup
       parameters:
         - name: groupReservationId
@@ -303,8 +303,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid authentication token
+        '403':
+          description: The authenticated user is not the reservation owner
         '404':
-          description: Group reservation not found or GroupId is required
+          description: Group reservation or parent reservation not found
           content:
             application/json:
               schema:
@@ -671,7 +675,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/OrderItemResponse'
+            $ref: '#/components/schemas/ParticipantItem'
           description: Items ordered by the participant
         total:
           type: number
@@ -683,31 +687,30 @@ components:
           description: Whether the participant has submitted their cart
           example: true
 
-    OrderItemResponse:
+    ParticipantItem:
       type: object
       properties:
-        dishId:
-          type: string
-          description: The ID of the dish
-          example: dish-123
-        dishName:
-          type: string
-          description: Name of the dish
-          example: Spaghetti Carbonara
+        dish:
+          $ref: '#/components/schemas/ParticipantDish'
         quantity:
           type: integer
           description: Quantity ordered
           example: 2
+
+    ParticipantDish:
+      type: object
+      properties:
+        id:
+          type: string
+          example: dish-123
+        name:
+          type: string
+          example: Spaghetti Carbonara
         price:
           type: number
           format: decimal
           description: Price per unit
           example: 22.50
-        total:
-          type: number
-          format: decimal
-          description: Total price for this item
-          example: 45.00
 
     GetGroupInviteTokenResponse:
       type: object

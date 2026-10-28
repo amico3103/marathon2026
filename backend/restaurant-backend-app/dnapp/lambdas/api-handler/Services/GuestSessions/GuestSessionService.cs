@@ -171,7 +171,12 @@ public class GuestSessionService(
         };
     }
 
-    
+    public async Task<GetAllSessionsResponse> GetGroupSessionsAsync(string userId, string groupReservationId)
+    {
+        await ValidateReservationOwnerAsync(groupReservationId, userId);
+        return await BuildGroupSessionsResponseAsync(groupReservationId);
+    }
+
     public async Task<GetAllSessionsResponse> DeleteGuestSessionAsync(string userId, string groupReservationId, string guestSessionId)
     {
         await ValidateReservationOwnerAsync(groupReservationId, userId);
@@ -186,6 +191,11 @@ public class GuestSessionService(
 
         await guestSessionRepository.DeleteAsync(session);
 
+        return await BuildGroupSessionsResponseAsync(groupReservationId);
+    }
+
+    private async Task<GetAllSessionsResponse> BuildGroupSessionsResponseAsync(string groupReservationId)
+    {
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
 
         var dishIds = sessions
@@ -201,14 +211,15 @@ public class GuestSessionService(
 
         foreach (var guestSession in sessions)
         {
-            var items = guestSession.Dishes.Select(d => new OrderItemResponse
+            var items = guestSession.Dishes.Select(item =>
             {
-                Dish = DishMapper.ToDishResponse(dishesById[d.DishId]),
-                Quantity = d.Quantity
+                var dish = dishesById[item.DishId];
+                return new ParticipantItem(new ParticipantDish(dish.Id, dish.Name, dish.Price), item.Quantity);
             }).ToArray();
 
             decimal total = items.Sum(i => i.Quantity * i.Dish.Price);
-            var participant = new Participant(guestSession.Id, ParticipantType.Guest, guestSession.GuestName, items, total, guestSession.IsSubmitted);
+            var type = guestSession.IsOwnerSession ? ParticipantType.Owner : ParticipantType.Guest;
+            var participant = new Participant(guestSession.Id, type, guestSession.GuestName, items, total, guestSession.IsSubmitted);
             participants.Add(participant);
         }
 
