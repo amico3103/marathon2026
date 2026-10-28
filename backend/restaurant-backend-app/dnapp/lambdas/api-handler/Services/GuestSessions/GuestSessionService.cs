@@ -179,7 +179,11 @@ public class GuestSessionService(
 
     public async Task<GetAllSessionsResponse> DeleteGuestSessionAsync(string userId, string groupReservationId, string guestSessionId)
     {
-        await ValidateReservationOwnerAsync(groupReservationId, userId);
+        var group = await ValidateReservationOwnerAsync(groupReservationId, userId);
+        if (group.Status == GroupReservationStatus.Submitted)
+            throw new GroupReservationSubmittedException();
+        if (group.Status == GroupReservationStatus.Closed)
+            throw new GroupReservationExpiredException();
 
         var session = await guestSessionRepository.GetByGuestSessionId(guestSessionId)
             ?? throw new GuestSessionNotFoundException($"Guest session with id {guestSessionId} not found.");
@@ -189,14 +193,19 @@ public class GuestSessionService(
             throw new ValidationException("Guest session does not belong to this group reservation.");
         }
 
+        if (session.IsOwnerSession)
+            throw new ValidationException("The owner session cannot be deleted.");
+
         await guestSessionRepository.DeleteAsync(session);
 
-        return await BuildGroupSessionsResponseAsync(groupReservationId);
+        return await BuildGroupSessionsResponseAsync(groupReservationId, guestSessionId);
     }
 
-    private async Task<GetAllSessionsResponse> BuildGroupSessionsResponseAsync(string groupReservationId)
+    private async Task<GetAllSessionsResponse> BuildGroupSessionsResponseAsync(string groupReservationId, string? excludedSessionId = null)
     {
-        var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
+        var sessions = (await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId))
+            .Where(session => session.Id != excludedSessionId)
+            .ToArray();
 
         var dishIds = sessions
             .SelectMany(s => s.Dishes)
@@ -301,7 +310,7 @@ public class GuestSessionService(
     }
 
     
-    private async Task ValidateReservationOwnerAsync(string groupReservationId, string userId)
+    private async Task<GroupReservation> ValidateReservationOwnerAsync(string groupReservationId, string userId)
     {
         var group = await groupReservationRepository.GetGroupReservationByIdAsync(groupReservationId)
             ?? throw new GroupReservationNotFoundException();
@@ -313,6 +322,8 @@ public class GuestSessionService(
         {
             throw new ActionForbiddenException("Only the reservation owner can perform this action.");
         }
+
+        return group;
     }
 
     public async Task<GetGuestSessionResponse> GetGuestSessionInfoAsync(string guestSessionId)

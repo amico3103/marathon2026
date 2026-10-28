@@ -442,7 +442,7 @@ paths:
       tags:
         - Guest Sessions
       summary: Delete guest session
-      description: Deletes a guest session from a group reservation
+      description: The reservation owner removes a guest session from an open group reservation and receives the updated group snapshot. The owner session cannot be removed.
       operationId: deleteGuestSession
       parameters:
         - name: groupReservationId
@@ -465,10 +465,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: Updated snapshot of the group reservation
+                $ref: '#/components/schemas/GetAllSessionsResponse'
         '400':
-          description: Invalid request - missing required path parameters
+          description: Missing path parameters, session from another group, or owner session
           content:
             application/json:
               schema:
@@ -479,12 +478,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The authenticated user is not the reservation owner
         '404':
           description: Group reservation or guest session not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Group reservation is submitted or closed
 
   /reservations/{reservationId}/guest-session-id:
     get:

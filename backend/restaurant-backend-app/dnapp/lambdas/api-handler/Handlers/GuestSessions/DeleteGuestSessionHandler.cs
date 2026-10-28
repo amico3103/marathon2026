@@ -38,7 +38,7 @@ public class DeleteGuestSessionHandler : IApiRequestHandler
         try
         {
             var updatedSnapshot = await _guestSessionService.DeleteGuestSessionAsync(userId, groupReservationId, guestSessionId);
-            return ResponseBuilder.CreateSuccessResponse(updatedSnapshot);
+            return ResponseBuilder.CreateJsonResponse(200, updatedSnapshot);
         }
         catch (GroupReservationNotFoundException ex)
         {
@@ -55,6 +55,14 @@ public class DeleteGuestSessionHandler : IApiRequestHandler
         catch (ActionForbiddenException ex)
         {
             return ResponseBuilder.CreateErrorResponse(403, ex.Message, context.Logger);
+        }
+        catch (GroupReservationSubmittedException ex)
+        {
+            return ResponseBuilder.CreateErrorResponse(409, ex.Message, context.Logger);
+        }
+        catch (GroupReservationExpiredException ex)
+        {
+            return ResponseBuilder.CreateErrorResponse(409, ex.Message, context.Logger);
         }
         catch (ValidationException ex)
         {

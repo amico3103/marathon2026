@@ -1201,9 +1201,23 @@ Response: 200 OK
 ```
 
 ### `DELETE` /guest/groups/{groupReservationId}/sessions/{guestSessionId}
+Owner authorization required. The guest session must belong to the group, and the group must be open.
+
 Response: 200 OK
 ```json
 {
-  "message": "Guest session removed from group successfully."
+  "participants": [
+    {
+      "id": "remaining-session-id",
+      "type": "Guest",
+      "name": "Olena",
+      "items": [],
+      "total": 0,
+      "isSubmitted": false
+    }
+  ],
+  "total": 0
 }
 ```
+
+Returns 400 if the session belongs to another group, 403 if the user is not the owner, and 404 if the session or group is missing. A submitted or closed group returns 409.
