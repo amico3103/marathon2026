@@ -24,7 +24,7 @@ public class GetGroupSessionsHandlerTests
     {
         var snapshot = new GetAllSessionsResponse(
             [new Participant("session-1", ParticipantType.Guest, "Olena",
-                [new ParticipantItem(new ParticipantDish("dish-2", "Tom Yum", 220), 1)], 220, false)], 220);
+                [new ParticipantItem(new ParticipantDish("dish-2", "Tom Yum", 220, "https://images.example/soup.png"), 1)], 220, false)], 220);
         _service.Setup(service => service.GetGroupSessionsAsync("owner-1", "group-1")).ReturnsAsync(snapshot);
 
         var response = await new GetGroupSessionsHandler(_service.Object)
@@ -43,7 +43,8 @@ public class GetGroupSessionsHandlerTests
         Assert.Equal("dish-2", dish.GetProperty("id").GetString());
         Assert.Equal("Tom Yum", dish.GetProperty("name").GetString());
         Assert.Equal(220, dish.GetProperty("price").GetDecimal());
-        Assert.Equal(3, dish.EnumerateObject().Count());
+        Assert.Equal("https://images.example/soup.png", dish.GetProperty("imageUrl").GetString());
+        Assert.Equal(4, dish.EnumerateObject().Count());
     }
 
     [Fact]

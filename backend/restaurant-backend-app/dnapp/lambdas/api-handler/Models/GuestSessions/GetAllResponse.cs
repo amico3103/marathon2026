@@ -15,7 +15,7 @@ public record Participant(
 
 public record ParticipantItem(ParticipantDish Dish, int Quantity);
 
-public record ParticipantDish(string Id, string Name, decimal Price);
+public record ParticipantDish(string Id, string Name, decimal Price, string? ImageUrl = null);
 
 public enum ParticipantType
 {

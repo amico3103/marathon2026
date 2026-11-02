@@ -709,7 +709,7 @@ public class GuestSessionServiceTests
         };
         var dishes = new[]
         {
-            new Dish { Id = "dish-1", Name = "Caesar Salad", Price = 180 },
+            new Dish { Id = "dish-1", Name = "Caesar Salad", Price = 180, ImageUrl = "https://images.example/salad.png" },
             new Dish { Id = "dish-2", Name = "Tom Yum", Price = 220 }
         };
 
@@ -728,6 +728,8 @@ public class GuestSessionServiceTests
         var ownerItems = participants[0].Items.ToArray();
         Assert.Equal(2, ownerItems.Length);
         Assert.Equal("Caesar Salad", ownerItems[0].Dish.Name);
+        Assert.Equal("https://images.example/salad.png", ownerItems[0].Dish.ImageUrl);
+        Assert.Null(ownerItems[1].Dish.ImageUrl);
         Assert.Equal(2, ownerItems[0].Quantity);
         Assert.Equal("Tom Yum", ownerItems[1].Dish.Name);
         Assert.Equal("session-2", participants[1].Id);
@@ -736,6 +738,43 @@ public class GuestSessionServiceTests
         Assert.Equal(220, participants[1].Total);
         Assert.False(participants[1].IsSubmitted);
         Assert.Equal(800, result.Total);
+    }
+
+    [Fact]
+    public async Task GetEditedGroupSessionsAsync_PreservesOrderAndChangesOnlySelectedParticipant()
+    {
+        var group = SetupOwnedGroup();
+        var owner = new GuestSession
+        {
+            Id = "z-owner", GuestName = "Owner", GroupReservationId = group.GroupReservationId, IsOwnerSession = true,
+            IsSubmitted = true, Dishes = [new OrderItem { DishId = "dish-1", Quantity = 1 }]
+        };
+        var guest = new GuestSession
+        {
+            Id = "a-guest", GuestName = "Guest", GroupReservationId = group.GroupReservationId,
+            IsSubmitted = true, Dishes = [new OrderItem { DishId = "dish-1", Quantity = 2 }]
+        };
+        _mockGuestSessionRepository.Setup(r => r.GetAllByGroupReservationIdAsync(group.GroupReservationId))
+            .ReturnsAsync([guest, owner]);
+        _mockDishRepository.Setup(r => r.GetDishesByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync([new Dish { Id = "dish-1", Name = "Salad", Price = 10 }]);
+        var editedOwner = new GuestSession
+        {
+            Id = owner.Id, GuestName = "Owner", GroupReservationId = group.GroupReservationId, IsOwnerSession = true,
+            IsSubmitted = true, Dishes = [new OrderItem { DishId = "dish-1", Quantity = 3 }]
+        };
+
+        var result = await _guestSessionService.GetEditedGroupSessionsAsync("owner-1", group.GroupReservationId, editedOwner);
+        var participants = result.Participants.ToArray();
+
+        Assert.Equal(new[] { owner.Id, guest.Id }, participants.Select(p => p.Id));
+        Assert.Equal(3, participants[0].Items.Single().Quantity);
+        Assert.Equal(30, participants[0].Total);
+        Assert.Equal(2, participants[1].Items.Single().Quantity);
+        Assert.Equal(20, participants[1].Total);
+        Assert.Equal(50, result.Total);
+        var refreshed = await _guestSessionService.GetGroupSessionsAsync("owner-1", group.GroupReservationId);
+        Assert.Equal(participants.Select(p => p.Id), refreshed.Participants.Select(p => p.Id));
     }
 
     [Fact]

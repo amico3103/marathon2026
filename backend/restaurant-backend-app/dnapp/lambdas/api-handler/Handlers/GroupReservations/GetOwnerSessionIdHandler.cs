@@ -20,8 +20,12 @@ public class GetOwnerSessionIdHandler(IGroupReservationService service) : IApiRe
 
         try
         {
-            var sessionId = await service.GetOwnerSessionIdAsync(reservationId, userId);
-            return ResponseBuilder.CreateJsonResponse(200, new { guestSessionId = sessionId });
+            var ownerSession = await service.GetOwnerSessionIdAsync(reservationId, userId);
+            return ResponseBuilder.CreateJsonResponse(200, new
+            {
+                guestSessionId = ownerSession.GuestSessionId,
+                groupReservationId = ownerSession.GroupReservationId
+            });
         }
         catch (ReservationNotFoundException exception)
         {

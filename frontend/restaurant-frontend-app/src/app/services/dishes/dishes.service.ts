@@ -15,7 +15,7 @@ export class DishesService {
 
   // /dishes
   // /dishes?dishType=MainCourse&sortBy=PriceDescending&name=Spaghetti
-  getDishes(dishType?: string, sortBy?: string, name?: string): Observable<DishListResponse[]> {
+  getDishes(dishType?: string, sortBy?: string, name?: string, reservationId?: string): Observable<DishListResponse[]> {
     let params = new HttpParams();
 
     if (dishType) {
@@ -26,6 +26,9 @@ export class DishesService {
     }
     if (name) {
       params = params.set('name', name);
+    }
+    if (reservationId) {
+      params = params.set('reservationId', reservationId);
     }
 
     return this.http.get<DishListResponse[]>(`${this.baseUrl}/dishes`, { params });

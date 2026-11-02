@@ -13,7 +13,8 @@ public class GuestSessionRepository(IDynamoDBContext context, IAmazonDynamoDB dy
 {
     public async Task<GuestSession?> GetByGuestSessionId(string id) => await context.LoadAsync<GuestSession?>(id, new LoadConfig()
     {
-        OverrideTableName = ResourceNames.GuestSessionTableName
+        OverrideTableName = ResourceNames.GuestSessionTableName,
+        ConsistentRead = true
     });
 
     public async Task<GuestSession?> GetByGroupReservationId(string groupReservationId)
@@ -40,11 +41,15 @@ public class GuestSessionRepository(IDynamoDBContext context, IAmazonDynamoDB dy
 
     public async Task<List<GuestSession>> GetAllByGroupReservationIdAsync(string groupReservationId)
     {
-        return await context.QueryAsync<GuestSession>(groupReservationId, new QueryConfig
+        var indexedSessions = await context.QueryAsync<GuestSession>(groupReservationId, new QueryConfig
         {
             OverrideTableName = ResourceNames.GuestSessionTableName,
             IndexName = GlobalSecondaryIndexes.GuestSession.GroupReservationId
         }).GetRemainingAsync();
+
+        // The GSI locates the keys; fetch current cart contents from the base table.
+        var currentSessions = await Task.WhenAll(indexedSessions.Select(session => GetByGuestSessionId(session.Id)));
+        return currentSessions.Where(session => session is not null).Select(session => session!).ToList();
     }
 
     public async Task SaveAsync(GuestSession guestSession) => await context.SaveAsync(guestSession, new SaveConfig

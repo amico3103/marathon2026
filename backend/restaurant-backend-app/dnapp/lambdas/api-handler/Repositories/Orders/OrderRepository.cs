@@ -49,7 +49,14 @@ public class OrderRepository : IOrderRepository
 
         var results = await _dynamoDbContext.QueryAsync<Order>(reservationId, config).GetNextSetAsync();
 
-        return results.FirstOrDefault(o => o.Status != OrderStatus.Cancelled);
+        foreach (var indexedOrder in results)
+        {
+            var current = await _dynamoDbContext.LoadAsync<Order>(indexedOrder.OrderId, indexedOrder.CustomerId,
+                new LoadConfig { OverrideTableName = OrdersTableName, ConsistentRead = true });
+            if (current is not null && current.Status != OrderStatus.Cancelled)
+                return current;
+        }
+        return null;
     }
 
     public async Task SaveOrderAsync(Order order)

@@ -1,0 +1,172 @@
+<main class="page">
+  @if (pageState() === 'loading') {
+    <section class="state-panel" aria-live="polite">
+      <h1>Group Pre-Order</h1>
+      <p>Loading the latest pre-order data…</p>
+    </section>
+  } @else if (pageState() === 'error') {
+    <section class="state-panel" role="alert">
+      <h1>Group Pre-Order</h1>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="button button--primary button--large" (click)="load()">
+        Try again
+      </button>
+    </section>
+  } @else if (reservation(); as reservationDetails) {
+    <header class="page-header">
+      <div class="heading-row">
+        <h1>Group Pre-Order</h1>
+        <span class="badge" [class.badge-sent]="groupStatus() !== 'Open'">
+          {{ statusLabel() }}
+        </span>
+      </div>
+
+      <ul class="reservation-details" aria-label="Reservation details">
+        <li>
+          <img src="assets/svg/location-green.svg" alt="" aria-hidden="true" />
+          {{ reservationDetails.locationAddress }}
+        </li>
+        <li>
+          <img src="assets/svg/calendar-green.svg" alt="" aria-hidden="true" />
+          {{ reservationDetails.startTime | date: 'MMM d, y' }}
+        </li>
+        <li>
+          <img src="assets/svg/clock-green.svg" alt="" aria-hidden="true" />
+          {{ reservationDetails.startTime | date: 'HH:mm' }} –
+          {{ reservationDetails.endTime | date: 'HH:mm' }}
+        </li>
+        <li>
+          <img src="assets/svg/people-green.svg" alt="" aria-hidden="true" />
+          {{ guestsLabel() }}
+        </li>
+      </ul>
+
+      <div class="sync-row" aria-live="polite">
+        @if (updatedAt(); as timestamp) {
+          @if (syncError()) {
+            <span class="sync-error">Couldn't refresh. Showing data from {{ timestamp | date: 'HH:mm:ss' }}</span>
+          } @else {
+            <span>Updated at {{ timestamp | date: 'HH:mm:ss' }}</span>
+          }
+        }
+        @if (groupStatus() === 'Open') {
+          <button
+            type="button"
+            class="refresh-button"
+            [disabled]="refreshing()"
+            (click)="refreshNow()"
+          >
+            {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (pendingCount() > 0 && groupStatus() === 'Open') {
+      <p class="notice" role="status">
+        {{ pendingCount() }} {{ pendingCount() === 1 ? 'participant hasn\'t' : 'participants haven\'t' }}
+        submitted their cart yet — their dishes won't be included in the order.
+      </p>
+    }
+
+    @if (participants().length) {
+      <ul class="participants">
+        @for (participant of participants(); track participant.id) {
+          <li>
+            <app-participant-card
+              [participant]="participant"
+              [isCurrentUser]="participant.id === ownerSessionId()"
+              [canRemove]="groupStatus() === 'Open' && !submitting() && !removing() && !showSubmitModal()"
+              [canEdit]="groupStatus() === 'Open' && !submitting() && !removing() && !showSubmitModal() && !guestToRemove()"
+              [editBusy]="updatingDish()"
+              (quantityChange)="updateDish($event)"
+              (removeClick)="openRemoveConfirmation($event)"
+            />
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="empty-state">Participants haven't added any dishes yet</p>
+    }
+
+    <section class="consolidated" aria-labelledby="consolidated-title">
+      <h2 id="consolidated-title">Consolidated pre-order</h2>
+      @if (consolidatedItems().length) {
+        <ul>
+          @for (item of consolidatedItems(); track item.dish.id) {
+            <li>
+              <span>{{ item.dish.name }} × {{ item.quantity }}</span>
+              <strong>{{ item.total | currency: 'USD' : 'symbol' : '1.2-2' }}</strong>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-state">Participants haven't added any dishes yet</p>
+      }
+    </section>
+
+    <section class="summary" aria-label="Order summary">
+      <p class="grand-total">
+        <span>Grand Total</span>
+        <span class="grand-total-value">
+          {{ grandTotal() | currency: 'USD' : 'symbol' : '1.2-2' }}
+        </span>
+      </p>
+      <button
+        type="button"
+        class="submit-button"
+        [disabled]="!canSubmit()"
+        (click)="openSubmitConfirmation()"
+      >
+        Submit Pre-Order
+      </button>
+      @if (groupStatus() !== 'Open') {
+        <p class="submitted-message">
+          {{ groupStatus() === 'Submitted' ? 'Pre-order sent to the restaurant' : 'Group pre-order is closed' }}
+        </p>
+      }
+    </section>
+  }
+</main>
+
+@if (guestToRemove(); as guest) {
+  <app-modal
+    title="Remove Guest"
+    [closeOnBackdrop]="!removing()"
+    (closed)="closeRemoveConfirmation()"
+  >
+    <p>Are you sure you want to remove <strong>{{ guest.name }}</strong> and their pre-order from this reservation? This action cannot be undone.</p>
+    <button modal-actions type="button" class="button button--secondary button--large"
+      [disabled]="removing()" (click)="closeRemoveConfirmation()">Cancel</button>
+    <button modal-actions type="button" class="button button--primary button--large"
+      [disabled]="removing()" (click)="removeGuest()">{{ removing() ? 'Removing…' : 'Remove' }}</button>
+  </app-modal>
+}
+
+@if (showSubmitModal()) {
+  <app-modal
+    title="Submit Pre-Order?"
+    [closeOnBackdrop]="!submitting()"
+    (closed)="closeSubmitConfirmation()"
+  >
+    <p>Only dishes from submitted carts will be sent to the restaurant. This action cannot be undone.</p>
+    <button
+      modal-actions
+      type="button"
+      class="button button--secondary button--large"
+      [disabled]="submitting()"
+      (click)="closeSubmitConfirmation()"
+    >
+      Cancel
+    </button>
+    <button
+      modal-actions
+      type="button"
+      class="button button--primary button--large"
+      [disabled]="submitting()"
+      (click)="submitPreOrder()"
+    >
+      {{ submitting() ? 'Submitting…' : 'Submit' }}
+    </button>
+  </app-modal>
+}

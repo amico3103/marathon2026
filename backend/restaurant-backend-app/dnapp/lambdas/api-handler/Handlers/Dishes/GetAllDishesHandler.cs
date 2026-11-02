@@ -6,6 +6,8 @@ using APIHandler.Constants.Dishes;
 using APIHandler.Entities;
 using APIHandler.Helpers;
 using APIHandler.Mappers;
+using APIHandler.Repositories.Reservations;
+using APIHandler.Repositories.Tables;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,10 +20,14 @@ public class GetAllDishesHandler : IApiRequestHandler
     private static readonly string DishesTableName = ResourceNames.DishesTableName;
 
     private readonly IDynamoDBContext _dbContext;
+    private readonly IReservationRepository _reservations;
+    private readonly ITableRepository _tables;
 
-    public GetAllDishesHandler(IDynamoDBContext dbContext)
+    public GetAllDishesHandler(IDynamoDBContext dbContext, IReservationRepository reservations, ITableRepository tables)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _reservations = reservations;
+        _tables = tables;
     }
 
     public static readonly DynamoDBOperationConfig _dishesConfig = new()
@@ -42,9 +48,24 @@ public class GetAllDishesHandler : IApiRequestHandler
             request.QueryStringParameters.TryGetValue("name", out name);
         }
 
-        // dishes
+        var conditions = new List<ScanCondition>();
+        if (request.QueryStringParameters?.TryGetValue("reservationId", out var reservationId) == true)
+        {
+            if (string.IsNullOrWhiteSpace(reservationId))
+                return ResponseBuilder.CreateErrorResponse(400, "Reservation ID is required.", context.Logger);
+
+            var reservation = await _reservations.GetReservationByIdAsync(reservationId);
+            if (reservation is null)
+                return ResponseBuilder.CreateErrorResponse(404, "Reservation was not found.", context.Logger);
+            var table = await _tables.GetTableAsync(reservation.TableId);
+            if (table is null || string.IsNullOrWhiteSpace(table.LocationId))
+                return ResponseBuilder.CreateErrorResponse(404, "Reservation location was not found.", context.Logger);
+
+            conditions.Add(new ScanCondition(nameof(Dish.LocationId), Amazon.DynamoDBv2.DocumentModel.ScanOperator.Equal, table.LocationId));
+        }
+
         var dishes = await _dbContext
-            .ScanAsync<Dish>(new List<ScanCondition>(), _dishesConfig)
+            .ScanAsync<Dish>(conditions, _dishesConfig)
             .GetRemainingAsync();
 
         var orders = new List<global::APIHandler.Entities.Order>();

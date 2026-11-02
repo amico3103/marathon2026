@@ -6,6 +6,7 @@ namespace APIHandler.Services.GuestSessions;
 
 public interface IGuestSessionService
 {
+    Task<GetAllSessionsResponse> GetEditedGroupSessionsAsync(string userId, string groupId, APIHandler.Entities.GuestSession editedSession);
     Task<CreatGuestSessionResponse> CreateGuestSessionAsync(CreateGuestSessionRequest request);
     Task AddDishAsync(string guestSessionId, string dishId, int quantity);
     Task RemoveDishAsync(string guestSessionId, string dishId, int quantity);

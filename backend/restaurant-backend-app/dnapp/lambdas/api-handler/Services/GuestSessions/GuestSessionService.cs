@@ -201,11 +201,26 @@ public class GuestSessionService(
         return await BuildGroupSessionsResponseAsync(groupReservationId, guestSessionId);
     }
 
-    private async Task<GetAllSessionsResponse> BuildGroupSessionsResponseAsync(string groupReservationId, string? excludedSessionId = null)
+    public async Task<GetAllSessionsResponse> GetEditedGroupSessionsAsync(string userId, string groupId, GuestSession editedSession)
+    {
+        await ValidateReservationOwnerAsync(groupId, userId);
+        return await BuildGroupSessionsResponseAsync(groupId, editedSession: editedSession);
+    }
+
+    private async Task<GetAllSessionsResponse> BuildGroupSessionsResponseAsync(string groupReservationId, string? excludedSessionId = null, GuestSession? editedSession = null)
     {
         var sessions = (await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId))
             .Where(session => session.Id != excludedSessionId)
             .ToArray();
+
+        if (editedSession is not null)
+        {
+            var exists = sessions.Any(session => session.Id == editedSession.Id);
+            sessions = sessions.Select(session => session.Id == editedSession.Id ? editedSession : session).ToArray();
+            if (!exists) sessions = sessions.Append(editedSession).ToArray();
+        }
+        sessions = sessions.OrderByDescending(session => session.IsOwnerSession)
+            .ThenBy(session => session.Id, StringComparer.Ordinal).ToArray();
 
         var dishIds = sessions
             .SelectMany(s => s.Dishes)
@@ -223,7 +238,7 @@ public class GuestSessionService(
             var items = guestSession.Dishes.Select(item =>
             {
                 var dish = dishesById[item.DishId];
-                return new ParticipantItem(new ParticipantDish(dish.Id, dish.Name, dish.Price), item.Quantity);
+                return new ParticipantItem(new ParticipantDish(dish.Id, dish.Name, dish.Price, dish.ImageUrl), item.Quantity);
             }).ToArray();
 
             decimal total = items.Sum(i => i.Quantity * i.Dish.Price);

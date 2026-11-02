@@ -8,6 +8,7 @@ using APIHandler.Mappers;
 using APIHandler.Models.Reservations;
 using APIHandler.Models.Users;
 using APIHandler.Services.Locations;
+using APIHandler.Services.GroupReservations;
 using System;
 using System.Linq;
 using System.Text.Json;
@@ -23,11 +24,14 @@ public class EditReservationHandler : IApiRequestHandler
 
     private readonly IDynamoDBContext _dbContext;
     private readonly ILocationService _locationService;
+    private readonly IGroupReservationService _groupReservationService;
 
-    public EditReservationHandler(IDynamoDBContext dbContext, ILocationService locationService)
+    public EditReservationHandler(IDynamoDBContext dbContext, ILocationService locationService,
+        IGroupReservationService groupReservationService)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+        _groupReservationService = groupReservationService;
     }
 
     public async Task<APIGatewayProxyResponse> HandleRequest(APIGatewayProxyRequest request, ILambdaContext context)
@@ -102,6 +106,11 @@ public class EditReservationHandler : IApiRequestHandler
         if (location == null)
         {
             return ResponseBuilder.CreateErrorResponse(404, "Location not foun.d", context.Logger);
+        }
+
+        if (reservation.CustomerId is not null && reservation.Status == ReservationStatus.Reserved && reservation.GuestCount >= 2)
+        {
+            await _groupReservationService.CreateGroupReservationIfDoesNotExistAsync(reservation.CustomerId, reservation.Id);
         }
 
         var response = ReservationMapper.ToReservationResponse(reservation, location.Address);

@@ -3,6 +3,7 @@
 .vscode/
 .strict-mode/
 backend/.syndicate-config-restaurant-backend-app/
+frontend/homework-design/
 .git/
 *.iml
 *.code-workspace

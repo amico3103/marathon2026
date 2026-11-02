@@ -68,6 +68,63 @@
   gap: 8px;
 }
 
+.quantity-buttons {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid color.$neutral-200;
+  border-radius: 10px;
+  background: color.$neutral-0;
+
+  .icon-button {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: color.$green-100;
+    cursor: pointer;
+
+    img {
+      display: block;
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover:not(:disabled) {
+      background: color.$green-150;
+    }
+
+    &:focus-visible {
+      outline: 2px solid color.$green-600;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      background: color.$neutral-100;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  .value {
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 32px;
+    color: color.$neutral-900;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 
 .total {
   display: flex;

@@ -58,7 +58,9 @@ export class MenuPageComponent implements OnInit {
         if (!this.preOrderReservationId) {
           console.error('Pre-order is enabled but no reservation ID provided.');
           this.toast.error('Pre-order is enabled but no reservation ID provided.', 'Error');
-          this.isPreOrderEnabled = false;
+          this.dishes = [];
+          this.filteredDishes = [];
+          return;
         }
       }
 
@@ -78,7 +80,14 @@ export class MenuPageComponent implements OnInit {
     const category = this.selectedCategory ?? undefined;
     const sort = this.selectedSort;
 
-    this.dishesService.getDishes(category, sort).subscribe((data) => {
+    this.dishes = [];
+    this.filteredDishes = [];
+    this.dishesService.getDishes(
+      category,
+      sort,
+      undefined,
+      this.isPreOrderEnabled ? this.preOrderReservationId : undefined,
+    ).subscribe((data) => {
       this.dishes = data.map((dish) => ({
         ...dish,
         imageUrl: dish.imageUrl || 'assets/img/dish.png',
@@ -145,8 +154,8 @@ export class MenuPageComponent implements OnInit {
         next: () => {
           this.toast.success('Dish added to cart successfully!', 'Success');
         },
-        error: (err) => {
-          this.toast.error((err as Error).message, 'Error');
+        error: () => {
+          // The token interceptor displays the API's explanation once.
         },
       });
   }

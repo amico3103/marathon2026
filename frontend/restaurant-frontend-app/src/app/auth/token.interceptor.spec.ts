@@ -60,4 +60,17 @@ describe('tokenInterceptor', () => {
     expect(toastService.error).not.toHaveBeenCalled();
     expect(receivedStatus).toBe(400);
   });
+
+  it('also suppresses toasts for silent guest-group refresh requests', () => {
+    const guestUrl = 'https://test.api/guest/groups/group-1/sessions';
+    http
+      .get(guestUrl, { context: new HttpContext().set(SKIP_ERROR_TOAST, true) })
+      .subscribe({ error: () => undefined });
+
+    httpMock
+      .expectOne(guestUrl)
+      .flush({ message: 'Temporarily unavailable' }, { status: 503, statusText: 'Unavailable' });
+
+    expect(toastService.error).not.toHaveBeenCalled();
+  });
 });

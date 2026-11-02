@@ -1,0 +1,184 @@
+@use 'app/shared/styles/abstracts/colors' as color;
+
+.dish-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  button {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid color.$neutral-200;
+    border-radius: 6px;
+    background: color.$neutral-0;
+    color: color.$green-600;
+    font-size: 20px;
+    cursor: pointer;
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    &:hover:not(:disabled) { background: color.$green-100; }
+    &:focus-visible { outline: 2px solid color.$green-600; }
+  }
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.remove-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 4px 8px;
+  background: transparent;
+  color: color.$neutral-600;
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  text-decoration: underline;
+  cursor: pointer;
+
+  img {
+    display: block;
+    width: 16px;
+    height: 16px;
+    opacity: 0.65;
+  }
+
+  &:focus-visible {
+    outline: 2px solid color.$neutral-600;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.card {
+  background: color.$neutral-0;
+  border: 1px solid color.$neutral-200;
+  border-radius: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: color.$neutral-900;
+  overflow-wrap: anywhere;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: color.$orange-100;
+  color: color.$orange-600;
+
+  &.status-done {
+    background: color.$green-100;
+    color: color.$green-600;
+  }
+}
+
+.dishes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dish {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color.$neutral-100;
+}
+
+.dish-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dish-description {
+  display: flex;
+  flex: 1 1 160px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dish-name {
+  overflow-wrap: anywhere;
+  color: color.$neutral-900;
+}
+
+.dish-weight {
+  color: color.$neutral-400;
+  font-size: 12px;
+}
+
+.dish-qty {
+  color: color.$neutral-600;
+}
+
+.dish-price {
+  margin-left: auto;
+  font-weight: 500;
+  color: color.$neutral-900;
+}
+
+.empty {
+  margin: 0;
+  padding: 8px 0;
+  color: color.$neutral-400;
+}
+
+.subtotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  font-weight: 600;
+  color: color.$neutral-700;
+}
+
+.subtotal-value {
+  color: color.$green-600;
+}
+
+@media (max-width: 420px) {
+  .card {
+    padding: 16px;
+  }
+
+  .dish-description {
+    flex-basis: calc(100% - 52px);
+  }
+
+  .dish-qty {
+    margin-left: 52px;
+  }
+}

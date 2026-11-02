@@ -8,7 +8,8 @@ namespace APIHandler.Services.GroupReservations;
 
 public interface IGroupReservationService
 {
-    Task<string> GetOwnerSessionIdAsync(string reservationId, string userId);
+    Task<GuestSession> UpdateParticipantDishAsync(string userId, string groupId, string sessionId, string dishId, int quantity);
+    Task<(string GuestSessionId, string GroupReservationId)> GetOwnerSessionIdAsync(string reservationId, string userId);
     Task<IReadOnlyList<ConsolidatedOrderItem>> SubmitGroupPreOrderAsync(string groupReservationId, string reservationId, string userId);
     Task<GroupReservation> GetGroupReservationAsync(string groupReservationId);
     Task<GroupReservation> CreateGroupReservationAsync(string reservationId);

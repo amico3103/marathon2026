@@ -23,7 +23,7 @@ public class LevelTwoGroupHandlersTests
     public async Task GetOwnerSessionId_ReturnsIdForOwner()
     {
         _service.Setup(service => service.GetOwnerSessionIdAsync("reservation-1", "owner-1"))
-            .ReturnsAsync("owner-session-1");
+            .ReturnsAsync(("owner-session-1", "group-1"));
 
         var response = await new GetOwnerSessionIdHandler(_service.Object)
             .HandleRequest(Request("owner-1", "reservationId", "reservation-1"), _context.Object);
@@ -31,6 +31,7 @@ public class LevelTwoGroupHandlersTests
         Assert.Equal(200, response.StatusCode);
         using var body = JsonDocument.Parse(response.Body);
         Assert.Equal("owner-session-1", body.RootElement.GetProperty("guestSessionId").GetString());
+        Assert.Equal("group-1", body.RootElement.GetProperty("groupReservationId").GetString());
     }
 
     [Fact]

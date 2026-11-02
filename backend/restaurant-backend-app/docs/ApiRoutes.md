@@ -558,7 +558,8 @@ Response: `200 OK`
 Response: `200 OK`
 ```json
 {
-  "guestSessionId": "string"
+  "guestSessionId": "string",
+  "groupReservationId": "string"
 }
 ```
 
@@ -1199,6 +1200,16 @@ Response: 200 OK
   }
 ]
 ```
+
+### `PUT` /guest/groups/{groupReservationId}/sessions/{guestSessionId}
+
+Owner authorization required. Sets the absolute quantity of an existing dish in any participant's cart while the group is Open and the reservation is Reserved. A zero quantity removes the dish. Submitted carts remain submitted unless emptied; an emptied cart becomes unsubmitted. Owner cart changes also update its source Order so synchronization preserves the edit.
+
+```json
+{ "dishId": "dish-id", "quantity": 2 }
+```
+
+Response: updated group snapshot in the same format as GET group sessions, with server-calculated participant totals and overall total. Returns 403 for another customer, 400 for an invalid quantity or a session outside the group, 404 for missing records/dishes, and 409 for a finalized group.
 
 ### `DELETE` /guest/groups/{groupReservationId}/sessions/{guestSessionId}
 Owner authorization required. The guest session must belong to the group, and the group must be open.
