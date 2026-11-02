@@ -1,311 +1,135 @@
-# Deployment Guide
+# Green & Tasty — EPAM IT Marathon 2026
 
-This repo uses three deployment tracks:
+**Мова / Language:** [Українською](#українською) · [English](#english)
 
-- Terraform for shared AWS infrastructure under `infra/terraform`
-- AWS Syndicate for the backend application under `backend/restaurant-backend-app`
-- Angular build artifacts synced to the frontend S3 bucket under `frontend/restaurant-frontend-app`
+## Українською
 
-## Prerequisites
+Навчальний проєкт марафону [**EPAM 2026**](https://campus.epam.ua/ua/event/191) на тему ресторанного сервісу **Green & Tasty**: бронювання столиків і спільне попереднє замовлення страв. Моя частина роботи — розгортання застосунку в AWS та реалізація бекенду й фронтенду групового замовлення.
 
-Install the tools below on your machine:
+<a href="https://d2hntky491rgpt.cloudfront.net"><img src="docs/screenshots/05-home-page.png" alt="Головна сторінка Green & Tasty — відкрити сайт" width="480" /></a>
 
-- AWS CLI configured with credentials for the target AWS account (`aws configure`) (https://docs.aws.amazon.com/cli/latest/userguide/getting-started-prereqs.html)
-- Terraform 1.10 or newer (https://developer.hashicorp.com/terraform/install)
-- Python 3.10-3.11 (https://www.python.org/downloads/release/python-3110/)
-- .NET 10 SDK (https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
-- AWS Syndicate (`pip install aws-syndicate`) (https://github.com/epam/aws-syndicate)
-- Node.js 22.x with npm (https://nodejs.org/en/download/archive/v22.0.0)
+### Мій внесок
 
-## Deployment order
+#### Виконання домашнього завдання
 
-Use this order:
+- **Розгортання:** застосунок працює в AWS; інтерфейс підключено до справжнього API й даних із БД, без моків.
+- **Бекенд, рівні 1–3:** отримання учасників та їхніх кошиків, визначення власної сесії власника бронювання, відправлення спільного замовлення ресторану й видалення гостя.
+- **Фронтенд, рівні 1–3:** сторінка групового замовлення з картками учасників, стравами, кількістю, сумами та статусами; стани завантаження, помилки й порожнього списку.
+- **Спільне замовлення:** об'єднання підтверджених кошиків, підсумовування однакових страв, підтвердження перед відправленням і блокування редагування після нього.
+- **Оновлення даних:** автоматично кожні 15 секунд, поки група збирає замовлення, та вручну кнопкою Refresh.
+- **Бонус Remove Guest:** видалення гостя разом із його кошиком після підтвердження, з оновленням списку та сум.
+- **Перевірки:** автоматичні тести й перевірка на AWS. Мобільний вигляд на ширині 375 px перевірено вручну.
 
-1. Deploy Terraform infrastructure
-2. Deploy the backend using Syndicate
-3. Deploy the frontend to s3
+#### Додаткові функціональні розширення та вдосконалення
 
-Terraform then provisions or updates the shared AWS foundation, including the frontend S3 bucket and CloudFront distribution. Syndicate packages and deploys the backend application stack. After that, build the Angular app with the correct backend URL and sync it to S3.
+- **Редагування страв у груповому замовленні:** дороблено API та інтерфейс для зміни кількості й видалення окремих страв із перерахунком усіх сум. Власник може редагувати власний і гостьові кошики, гості — лише свої. У ТЗ ці кнопки прямо виключені з домашки.
+- **Меню конкретної локації:** для бронювання показуються лише страви його ресторану, без повторів із меню інших локацій.
+- **Власні зображення страв:** згенеровано окремі картинки для набору меню, завантажено їх у S3 та збережено посилання в БД; у груповому замовленні додано картинку-заглушку.
+- **Виправлення суміжних сценаріїв:** відображення бронювання на одну людину, перехід із модального вікна саме до попереднього замовлення та помилка створення замовлення з меню.
+- **Стабільне редагування кошиків:** картки більше не міняються місцями після кліку, кнопки не зникають під час збереження, а актуальні кількості й суми повертаються після першого запиту. Для додаткових сценаріїв додано тести.
 
-## 1. Deploy Terraform infrastructure
+Remove Guest, робота зі справжнім API та оновлення кожні 15 секунд належать до ТЗ, тому наведені в розділі виконаної домашки.
 
-Terraform manages the shared infrastructure resources in `infra/terraform`.
+### Використання AI
 
-Before deploying, verify terraform config files:
-Replace variables with your **AWS account ID** and **Email**
+**OpenAI Codex** використовувався у двох режимах:
 
-- `infra/terraform/backend.tf` - replace the Terraform state bucket name
-- `infra/terraform/variables.tf` - replace the default `account_id` and `alert_emails`
+- **Окремий AI-асистент** — для спільної роботи над кодом, аналізу та документації.
+- **Мультиагентна конфігурація** — з розподілом ролей для оркестрації, реалізації, рев’ю коду та тестування.
 
+### Скріншоти
 
-Before running `terraform init`, create the Terraform state bucket with AWS CLI if it does not already exist. 
-Get your AWS account ID from the CLI first:
+Знімки розгорнутого застосунку зі справжнім API та окремими тестовими даними.
 
-Windows PowerShell:
+| Сценарій | Зображення |
+| --- | --- |
+| Кошики учасників, статуси та сума підтверджених замовлень | [Owner Review](docs/screenshots/01-owner-review.png) |
+| Замовлення відправлено ресторану, редагування заблоковано | [Sent to Restaurant](docs/screenshots/02-sent-to-restaurant.png) |
+| Підтвердження видалення гостя | [Remove Guest](docs/screenshots/03-remove-guest.png) |
+| Зміна кількості страв власника й гостя та перерахунок сум | [Dish Editing](docs/screenshots/04-dish-editing.png) |
 
-```powershell
-$ACCOUNT_ID = aws sts get-caller-identity --query Account --output text
-```
+### Технології
 
-Linux or macOS:
+| Частина | Технології |
+| --- | --- |
+| Інтерфейс | Angular 22, TypeScript, HTML, SCSS, Signals, RxJS |
+| Серверна частина | C#, .NET 10, AWS Lambda, API Gateway |
+| Дані та вхід | DynamoDB, Amazon Cognito |
+| Зображення та хостинг | Amazon S3, CloudFront |
+| Інфраструктура й розгортання | Terraform, AWS Syndicate, AWS CLI |
+| Тести | xUnit, Moq, Jasmine, Karma, Chrome Headless |
 
-```bash
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-```
+### Посилання
 
-You can use AWS Console interface
-AWS Management Console equivalent:
-- Go to **S3** → **Create bucket** and use the bucket name **restaurant-terraform-state-$ACCOUNT_ID**
-- Turn on **Versioning** in the bucket properties
-- Leave **Block all public access** enabled
-- Use **Default encryption** with SSE-S3 (AES256)
+- [Відкрити застосунок](https://d2hntky491rgpt.cloudfront.net)
+- [README_EPAM.md — документація та інструкція розгортання](README_EPAM.md)
+- [Завдання з бекенду](homework-backend.md)
+- [Завдання з фронтенду](frontend/homework-design/homework-frontend.md) і [пояснення до макетів](frontend/homework-design/README.md)
+- [Читати англійською в цьому документі](#english)
 
-As alternative you can you AWS CLI
-Replace the bucket name with the CLI variable:
+---
 
-Windows PowerShell:
+## English
 
-```powershell
-aws s3api create-bucket `
-	--bucket restaurant-terraform-state-$ACCOUNT_ID `
-	--region us-west-2 `
-	--create-bucket-configuration LocationConstraint=us-west-2
+A learning project for the [**EPAM IT Marathon 2026**](https://campus.epam.ua/ua/event/191), focused on the **Green & Tasty** restaurant service: table reservations and group pre-orders. My work covers AWS deployment and implementation of the group pre-order backend and frontend.
 
-aws s3api put-bucket-versioning `
-	--bucket restaurant-terraform-state-$ACCOUNT_ID `
-	--versioning-configuration Status=Enabled
+<a href="https://d2hntky491rgpt.cloudfront.net"><img src="docs/screenshots/05-home-page.png" alt="Green & Tasty home page — open the website" width="480" /></a>
 
-aws s3api put-public-access-block `
-		--bucket restaurant-terraform-state-$ACCOUNT_ID `
-	--public-access-block-configuration `
-		"BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
-```
+### My contribution
 
-Linux or macOS:
+#### Homework implementation
 
-```bash
-aws s3api create-bucket \
-	--bucket restaurant-terraform-state-$ACCOUNT_ID \
-	--region us-west-2 \
-	--create-bucket-configuration LocationConstraint=us-west-2
+- **Deployment:** the app runs on AWS, with the frontend connected to a real API and database data, without mocks.
+- **Backend, levels 1–3:** retrieving participants and their carts, identifying the reservation owner's session, sending the combined order to the restaurant, and removing a guest.
+- **Frontend, levels 1–3:** a group order page with participant cards, dishes, quantities, subtotals, and statuses; loading, error, and empty states.
+- **Combined order:** merging submitted carts, adding quantities of matching dishes, confirming before sending, and locking editing afterwards.
+- **Data refresh:** automatic updates every 15 seconds while the group is collecting pre-orders, plus a manual Refresh button.
+- **Remove Guest bonus:** removing a guest and their cart after confirmation, with the participant list and totals updated.
+- **Verification:** automated tests and AWS checks. The mobile layout was manually checked at 375 px.
 
-aws s3api put-bucket-versioning \
-	--bucket restaurant-terraform-state-$ACCOUNT_ID \
-	--versioning-configuration Status=Enabled
+#### Additional Features and Improvements
 
-aws s3api put-public-access-block \
-		--bucket restaurant-terraform-state-$ACCOUNT_ID \
-	--public-access-block-configuration \
-		"BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
-```
+- **Group order dish editing:** extended the API and interface to change quantities and remove individual dishes, recalculating all totals. Owners can edit their own and their guests' carts; guests can edit only their own. The assignment explicitly excludes these controls.
+- **Location-specific menus:** a reservation shows only dishes from its restaurant, without duplicates from other locations' menus.
+- **Custom dish images:** generated individual images for the menu, uploaded them to S3, and stored their URLs in the database; added a placeholder image for group orders.
+- **Related flow fixes:** fixed single-person reservations not appearing, made the modal link open the reservation's pre-order menu, and fixed an error when creating an order from the menu.
+- **Stable cart editing:** cards keep their positions after a click, controls stay visible while saving, and current quantities and totals are returned after the first request. Added tests for the extra scenarios.
 
-### After bucket creation
-```bash
-cd ../../infra/terraform
-terraform init
-terraform fmt -check -recursive
-terraform validate
-terraform plan
-terraform apply -auto-approve
-```
+Remove Guest, real API integration, and updates every 15 seconds are part of the assignment and are listed under homework implementation.
 
-## 2. Deploy the backend with Syndicate
+### AI Usage
 
-The backend app is deployed from `backend/restaurant-backend-app`.
+**OpenAI Codex** was used in two modes:
 
-Before deploying, verify the Syndicate config files:
-edit syndicate.yml → set project_path to your local absolute path to backend/restaurant-backend-app
-Replace bucket names with your AWS account ID
-- `.syndicate-config-restaurant-backend-app/syndicate.yml`
-- `.syndicate-config-restaurant-backend-app/syndicate_aliases.yml`
+- **Standalone AI assistant** — for collaborative coding, analysis, and documentation.
+- **Multi-agent configuration** — with dedicated roles for orchestration, implementation, code review, and testing.
 
-On Windows PowerShell, run:
+### Screenshots
 
-```powershell
-cd ../../backend/restaurant-backend-app
-python3 -m venv syndicate_venv
-.\syndicate_venv\Scripts\Activate.ps1
-pip install aws-syndicate
-$env:SDCT_CONF = (Resolve-Path ".\.syndicate-config-restaurant-backend-app").Path
-syndicate create-deploy-target-bucket
-syndicate build
-syndicate deploy --deploy_name dev
-```
+Captured from the deployed app using the real API and dedicated test data.
 
-On Linux or macOS, run:
+| Scenario | Image |
+| --- | --- |
+| Participant carts, statuses, and the total for submitted carts | [Owner Review](docs/screenshots/01-owner-review.png) |
+| Order sent to the restaurant with editing locked | [Sent to Restaurant](docs/screenshots/02-sent-to-restaurant.png) |
+| Guest removal confirmation | [Remove Guest](docs/screenshots/03-remove-guest.png) |
+| Owner and guest dish quantity changes with recalculated totals | [Dish Editing](docs/screenshots/04-dish-editing.png) |
 
-```bash
-cd ../../backend/restaurant-backend-app
-python3 -m venv syndicate_venv
-source syndicate_venv/bin/activate
-export SDCT_CONF="$(pwd)/.syndicate-config-restaurant-backend-app"
-syndicate create-deploy-target-bucket
-syndicate build
-syndicate deploy --deploy_name dev
-```
+### Technologies
 
-For an incremental update instead of a full deploy, run the matching command for your shell.
+| Area | Technologies |
+| --- | --- |
+| Frontend | Angular 22, TypeScript, HTML, SCSS, Signals, RxJS |
+| Backend | C#, .NET 10, AWS Lambda, API Gateway |
+| Data and authentication | DynamoDB, Amazon Cognito |
+| Images and hosting | Amazon S3, CloudFront |
+| Infrastructure and deployment | Terraform, AWS Syndicate, AWS CLI |
+| Testing | xUnit, Moq, Jasmine, Karma, Chrome Headless |
 
-```
-syndicate update
-```
+### Links
 
-## 3. Deploy the frontend
-
-This section describes the manual deployment flow. It does not use GitHub Actions.
-
-Terraform creates and configures everything needed for frontend hosting:
-
-- the private frontend S3 bucket
-- the bucket policy that allows CloudFront to read from it
-- the CloudFront distribution that serves the site
-
-You do not need to configure the bucket manually after `terraform apply`. The manual part is only building the frontend and uploading the files to S3.
-
-### 3.1 Get the backend URL
-
-Use the deployed API Gateway base URL as `BACKEND_URL`. Example:
-
-```text
-https://<api-id>.execute-api.us-west-2.amazonaws.com/develop
-```
-
-The production frontend build will fail unless `BACKEND_URL` is set.
-
-To look it up in AWS:
-
-```powershell
-aws apigateway get-rest-apis --region us-west-2 --query "items[?name=='restaurant-backend-api'].{name:name,id:id}" --output table
-```
-
-Or set variables from AWS CLI:
-
-Windows PowerShell:
-
-```powershell
-$API_ID = aws apigateway get-rest-apis --region us-west-2 --query "items[?name=='restaurant-backend-api'].id | [0]" --output text
-$env:BACKEND_URL = "https://$API_ID.execute-api.us-west-2.amazonaws.com/develop"
-```
-
-Linux or macOS:
-
-```bash
-API_ID=$(aws apigateway get-rest-apis --region us-west-2 --query "items[?name=='restaurant-backend-api'].id | [0]" --output text)
-export BACKEND_URL="https://$API_ID.execute-api.us-west-2.amazonaws.com/develop"
-```
-
-### 3.2 Build the production bundle
-
-From the frontend app directory, install dependencies and build:
-
-```powershell
-cd ../../frontend/restaurant-frontend-app
-npm ci
-npm run build
-```
-
-The build process generates `src/environments/environment.production.ts` automatically from `BACKEND_URL` and writes the production bundle to `dist/restaurant-frontend-app/browser`.
-
-### 3.3 Upload the bundle to S3
-
-Sync the built files to the frontend bucket:
-
-```powershell
-aws s3 sync dist/restaurant-frontend-app/browser s3://restaurant-frontend-$ACCOUNT_ID/ --delete
-```
-
-The `--delete` flag removes files in S3 that no longer exist in the local build output.
-
-### 3.4 Get the frontend URL
-
-Get the CloudFront domain name from Terraform:
-
-```powershell
-cd ../../infra/terraform
-terraform output cloudfront_distribution_domain_name
-terraform output cloudfront_distribution_id
-```
-
-Use the returned domain name as the frontend host. Example:
-
-```text
-https://dxxxxxxxxxxxx.cloudfront.net
-```
-
-CloudFront does not provide a fixed public IP you should use. Use the distribution domain name instead.
-
-## Clean up all resources
-
-Use the reverse order of deployment:
-
-1. Remove uploaded frontend files from the frontend S3 bucket
-2. Clean up the backend resources deployed by Syndicate
-3. Destroy the shared infrastructure managed by Terraform
-4. Remove the Terraform state bucket
-5. Remove the Syndicate artifacts bucket
-
-### Remove frontend files from S3
-
-The frontend bucket must be empty before Terraform can destroy it.
-
-```powershell
-aws s3 rm s3://restaurant-frontend-$ACCOUNT_ID/ --recursive
-```
-
-If you are not using the shared training account, replace the bucket name with your own account-specific frontend bucket.
-
-### Clean up backend resources with Syndicate
-
-From the backend project directory, use the same Syndicate configuration and run:
-
-```powershell
-cd ../../backend/restaurant-backend-app
-$env:SDCT_CONF = (Resolve-Path ".\.syndicate-config-restaurant-backend-app").Path
-syndicate clean
-```
-
-On Linux or macOS, use:
-
-```bash
-cd ../../backend/restaurant-backend-app
-export SDCT_CONF="$(pwd)/.syndicate-config-restaurant-backend-app"
-syndicate clean
-```
-
-This removes the backend resources that Syndicate deployed into the AWS account.
-
-### Destroy Terraform-managed infrastructure
-
-After the frontend bucket is empty and the backend resources are removed, destroy the shared infrastructure:
-
-```powershell
-cd ../../infra/terraform
-terraform destroy -auto-approve
-```
-
-This removes the frontend S3 bucket, CloudFront distribution, and the rest of the infrastructure managed in `infra/terraform`.
-
-### Clear versioned bucket
-
-S3 bucket for storing terraform state have versioning configured. In order to delete it you must empty all versions created for s3 object.
-
-- Go to **S3** select **restaurant-terraform-state-$ACCOUNT_ID** → **Empty Bucket**
-
-### Remove the Terraform state bucket
-
-The Terraform state bucket is configured in `infra/terraform/backend.tf` and is not deleted by `terraform destroy`. Empty it first and then delete it manually:
-
-```powershell
-aws s3api delete-bucket --bucket restaurant-terraform-state-$ACCOUNT_ID --region us-west-2
-```
-
-### Remove the Syndicate artifacts bucket
-
-The Syndicate deploy target bucket is not managed by Terraform in this repo. If you also want to delete that bucket, empty it first and then remove it manually:
-
-```powershell
-aws s3 rm s3://marathon2026-restaurant-artifacts-$ACCOUNT_ID/ --recursive
-aws s3api delete-bucket --bucket marathon2026-restaurant-artifacts-$ACCOUNT_ID --region us-west-2
-```
-
-Only do this if you are sure you no longer need the stored Syndicate build artifacts.
+- [Open the app](https://d2hntky491rgpt.cloudfront.net)
+- [README_EPAM.md — documentation and deployment instructions](README_EPAM.md)
+- [Backend assignment](homework-backend.md)
+- [Frontend assignment](frontend/homework-design/homework-frontend.md) and [design notes](frontend/homework-design/README.md)
+- [Read in Ukrainian in this document](#українською)
