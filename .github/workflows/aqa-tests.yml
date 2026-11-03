@@ -2,6 +2,17 @@ name: AQA Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      test_filter:
+        description: TUnit filter (default is all 45 homework examples)
+        type: string
+        required: false
+        default: '/*/*/*/*[Category=group-preorder]'
+      expected_tests:
+        description: Expected number of examples for this filter
+        type: string
+        required: false
+        default: '45'
   schedule:
     - cron: '17 3 * * *'
 
@@ -52,6 +63,7 @@ jobs:
           BROWSER: Chromium
           TRACE_MODE: OnFailureOnly
           SKIP_PRE_RUN_CLEANUP: 'true'
+          TEST_FILTER: ${{ inputs.test_filter || '/*/*/*/*[Category=group-preorder]' }}
         run: |
           umask 077
           mkdir -p TestResults
@@ -61,11 +73,13 @@ jobs:
               exit 1
             fi
           done
-          dotnet run --no-build -- --treenode-filter '/*/*/*/*[Category=group-preorder]' --report-trx --output Detailed --progress off > TestResults/ci-private-run.log 2>&1
+          dotnet run --no-build -- --treenode-filter "$TEST_FILTER" --report-trx --output Detailed --progress off > TestResults/ci-private-run.log 2>&1
       - name: Create publishable report
         id: report
         if: always()
-        run: python3 ci/publish_report.py TestResults TestResults/ci-public
+        env:
+          EXPECTED_TESTS: ${{ inputs.expected_tests || '45' }}
+        run: python3 ci/publish_report.py TestResults TestResults/ci-public "$EXPECTED_TESTS"
       - name: Upload report even when tests fail
         id: upload
         if: always()

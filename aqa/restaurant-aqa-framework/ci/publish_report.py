@@ -18,14 +18,23 @@ def safe_name(value):
 
 def failure_kind(result):
     output = " ".join(result.itertext()).lower()
-    if any(word in output for word in ("name_not_resolved", "etimedout", "timed out", "timeout", "connection")):
-        return "Network or timeout"
-    if "assert" in output:
-        return "Assertion"
-    return "Test or setup error"
+    if "err_name_not_resolved" in output:
+        kind = "DNS resolution"
+    elif any(word in output for word in ("etimedout", "resource temporarily unavailable", "connection refused")):
+        kind = "API connection"
+    elif "timeout" in output or "timed out" in output:
+        kind = "Browser or request timeout"
+    elif "assert" in output:
+        kind = "Assertion"
+    else:
+        kind = "Test or setup error"
+    for component in ("waiterpreorderpage", "openwaitergrouporder", "guestscompletegroupjourney", "inviteguestthroughui"):
+        if component in output:
+            return f"{kind} ({component})"
+    return kind
 
 
-def main(source, destination):
+def main(source, destination, expected):
     destination.mkdir(parents=True, exist_ok=True)
     files = sorted(source.glob("*.trx"), key=lambda path: path.stat().st_mtime, reverse=True)
     if not files:
@@ -45,7 +54,7 @@ def main(source, destination):
                 "failure": failure_kind(result) if outcome == "Failed" else "",
             })
         note = "Details stay in the private runner log; browser traces and raw reports are not uploaded."
-        ok = len(rows) == 45 and all(row["outcome"] == "Passed" for row in rows)
+        ok = len(rows) == expected and all(row["outcome"] == "Passed" for row in rows)
     counts = {status: sum(row["outcome"] == status for row in rows)
               for status in ("Passed", "Failed", "NotExecuted", "Unknown")}
     report = {"total": len(rows), "counts": counts, "note": note, "tests": rows}
@@ -72,6 +81,9 @@ def main(source, destination):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        raise SystemExit("Usage: publish_report.py <TestResults> <publish directory>")
-    raise SystemExit(main(Path(sys.argv[1]), Path(sys.argv[2])))
+    if len(sys.argv) not in (3, 4):
+        raise SystemExit("Usage: publish_report.py <TestResults> <publish directory> [expected count]")
+    expected_count = int(sys.argv[3]) if len(sys.argv) == 4 else 45
+    if expected_count < 1:
+        raise SystemExit("Expected count must be positive")
+    raise SystemExit(main(Path(sys.argv[1]), Path(sys.argv[2]), expected_count))
