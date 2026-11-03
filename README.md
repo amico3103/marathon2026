@@ -19,6 +19,7 @@
 - **Оновлення даних:** автоматично кожні 15 секунд, поки група збирає замовлення, та вручну кнопкою Refresh.
 - **Бонус Remove Guest:** видалення гостя разом із його кошиком після підтвердження, з оновленням списку та сум.
 - **Перевірки:** автоматичні тести й перевірка на AWS. Мобільний вигляд на ширині 375 px перевірено вручну.
+- **AQA, рівні 1–3:** 45 автоматичних UI/API сценаріїв для групового замовлення, окремі тестові дані з прибиранням і успішний запуск у GitHub Actions.
 
 #### Додаткові функціональні розширення та вдосконалення
 
@@ -57,7 +58,7 @@ Remove Guest, робота зі справжнім API та оновлення �
 | Дані та вхід | DynamoDB, Amazon Cognito |
 | Зображення та хостинг | Amazon S3, CloudFront |
 | Інфраструктура й розгортання | Terraform, AWS Syndicate, AWS CLI |
-| Тести | xUnit, Moq, Jasmine, Karma, Chrome Headless |
+| Тести | xUnit, Moq, Jasmine, Karma, Chrome Headless; Reqnroll, TUnit, Screenplay, Playwright для .NET |
 
 ### Посилання
 
@@ -65,6 +66,7 @@ Remove Guest, робота зі справжнім API та оновлення �
 - [README_EPAM.md — документація та інструкція розгортання](README_EPAM.md)
 - [Завдання з бекенду](homework-backend.md)
 - [Завдання з фронтенду](frontend/homework-design/homework-frontend.md) і [пояснення до макетів](frontend/homework-design/README.md)
+- [AQA: інструкція для перевіряючого](aqa/restaurant-aqa-framework/docs/reviewer-guide.md) і [завдання](homework-aqa.md)
 - [Читати англійською в цьому документі](#english)
 
 ---
@@ -86,6 +88,7 @@ A learning project for the [**EPAM IT Marathon 2026**](https://campus.epam.ua/ua
 - **Data refresh:** automatic updates every 15 seconds while the group is collecting pre-orders, plus a manual Refresh button.
 - **Remove Guest bonus:** removing a guest and their cart after confirmation, with the participant list and totals updated.
 - **Verification:** automated tests and AWS checks. The mobile layout was manually checked at 375 px.
+- **AQA, levels 1–3:** 45 automated UI/API examples for group pre-orders, isolated test data with cleanup, and a successful GitHub Actions run.
 
 #### Additional Features and Improvements
 
@@ -124,7 +127,7 @@ Captured from the deployed app using the real API and dedicated test data.
 | Data and authentication | DynamoDB, Amazon Cognito |
 | Images and hosting | Amazon S3, CloudFront |
 | Infrastructure and deployment | Terraform, AWS Syndicate, AWS CLI |
-| Testing | xUnit, Moq, Jasmine, Karma, Chrome Headless |
+| Testing | xUnit, Moq, Jasmine, Karma, Chrome Headless; Reqnroll, TUnit, Screenplay, Playwright for .NET |
 
 ### Links
 
@@ -132,4 +135,5 @@ Captured from the deployed app using the real API and dedicated test data.
 - [README_EPAM.md — documentation and deployment instructions](README_EPAM.md)
 - [Backend assignment](homework-backend.md)
 - [Frontend assignment](frontend/homework-design/homework-frontend.md) and [design notes](frontend/homework-design/README.md)
+- [AQA reviewer guide](aqa/restaurant-aqa-framework/docs/reviewer-guide.md) and [assignment](homework-aqa.md)
 - [Read in Ukrainian in this document](#українською)

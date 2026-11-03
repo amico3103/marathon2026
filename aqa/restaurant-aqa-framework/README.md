@@ -1,12 +1,16 @@
 # Restaurant AQA framework
 
-End-to-end tests for the Green & Tasty restaurant application: Reqnroll (Gherkin) + TUnit + Playwright for .NET, with the Screenplay pattern.
+**Homework:** Direction 1, levels 1–3, on the deployed Green & Tasty app.
+
+**Approach:** BDD (Reqnroll/Gherkin) + Screenplay + Playwright for .NET + TUnit.
+
+Start with the [short reviewer guide](docs/reviewer-guide.md) for code, CI, report, and rerun links.
 
 Guidance for extending the suite (writing Gherkin, steps, Screenplay, test data, working with an AI assistant) is in [CLAUDE.md](CLAUDE.md).
 
-## Group pre-order homework progress
+## Group pre-order homework
 
-Direction 1, levels 1–3 are planned in the [coverage matrix](docs/coverage-matrix.md).
+Direction 1, levels 1–3 are complete and mapped in the [coverage matrix](docs/coverage-matrix.md).
 The [environment setup](docs/environment-setup.md), [waiter account checks](docs/waiter-account-check.md),
 and [first browser smoke run](docs/first-smoke-run.md) are documented separately.
 
@@ -29,8 +33,7 @@ all 45 examples sequentially. Two parallel attempts confirmed concurrency 2,
 but finished with transport failures (44/45 and 43/45 passed); a stable complete
 parallel run is still unconfirmed. The local default remains 1.
 The [GitHub Actions run](https://github.com/amico3103/marathon2026/actions/runs/41659883656)
-passed all 45 examples and published a token-safe summary. The final reviewer
-guide remains for step 15.
+passed all 45 examples and published a token-safe summary.
 These fixtures require AWS credentials in addition to the UI/API and waiter settings;
 the required parameters are listed in `.env.example`. The basic smoke test needs no AWS credentials.
 
