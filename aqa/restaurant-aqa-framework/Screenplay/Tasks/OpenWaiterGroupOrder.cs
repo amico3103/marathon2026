@@ -31,7 +31,8 @@ public sealed class OpenWaiterGroupOrder : ITask
         var credentials = Settings.Current.RequireWaiter();
         // Start recording after sign-in so the permanent waiter's password is never in the trace.
         await login.SignInAsync(credentials.Username, credentials.Password);
-        await page.WaitForURLAsync(url => !url.Contains("/login", StringComparison.Ordinal));
+        await page.WaitForURLAsync("**/waiter-reservations");
+        await page.WaitForFunctionAsync("() => !!localStorage.getItem('auth') && !!localStorage.getItem('user')");
         await context.Tracing.StartAsync(new() { Screenshots = true, Snapshots = true, Sources = true });
         tracing = true;
         await new WaiterPreOrderPage(page).OpenReservationAsync(data.BookingStart, data.Table.TableNumber);
