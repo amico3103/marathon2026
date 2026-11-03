@@ -44,5 +44,9 @@ jobs:
       - name: Discover homework tests
         run: |
           dotnet run --no-build -- --list-tests --treenode-filter '/*/*/*/*[Category=group-preorder]' > discovery.txt
-          grep '^Test discovery summary:' discovery.txt
-          grep -Eq '^Test discovery summary: found 45 test\(s\)' discovery.txt
+          if ! grep -Fq 'found 45 test(s)' discovery.txt; then
+            echo 'Expected 45 homework tests; actual discovery output:'
+            tail -n 60 discovery.txt
+            exit 1
+          fi
+          echo 'Discovered 45 homework tests'
