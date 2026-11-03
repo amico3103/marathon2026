@@ -1,0 +1,88 @@
+name: AQA Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aqa-live-fixtures
+  cancel-in-progress: false
+
+jobs:
+  group-preorder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: aqa/restaurant-aqa-framework
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore and build
+        run: dotnet build restaurant-aqa-framework.csproj --nologo
+      - name: Install Chromium dependencies
+        run: pwsh bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Run all 45 homework tests
+        id: test
+        continue-on-error: true
+        env:
+          UI_URL: ${{ vars.AQA_UI_URL }}
+          API_URL: ${{ vars.AQA_API_URL }}
+          AWS_REGION: ${{ vars.AQA_AWS_REGION }}
+          AQA_AWS_ACCOUNT_ID: ${{ vars.AQA_AWS_ACCOUNT_ID }}
+          AQA_COGNITO_USER_POOL_ID: ${{ vars.AQA_COGNITO_USER_POOL_ID }}
+          WAITER_USERNAME: ${{ secrets.AQA_WAITER_USERNAME }}
+          WAITER_PASSWORD: ${{ secrets.AQA_WAITER_PASSWORD }}
+          TESTTABLE_ID: ${{ vars.AQA_TESTTABLE_ID }}
+          TESTTABLE_WAITER_USERNAME: ${{ secrets.AQA_WAITER_USERNAME }}
+          TESTTABLE_WAITER_PASSWORD: ${{ secrets.AQA_WAITER_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AQA_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AQA_AWS_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+          MAX_PARALLEL_TESTS: '1'
+          HEADLESS: 'true'
+          BROWSER: Chromium
+          TRACE_MODE: OnFailureOnly
+          SKIP_PRE_RUN_CLEANUP: 'true'
+        run: |
+          umask 077
+          mkdir -p TestResults
+          for name in UI_URL API_URL AWS_REGION AQA_AWS_ACCOUNT_ID AQA_COGNITO_USER_POOL_ID WAITER_USERNAME WAITER_PASSWORD TESTTABLE_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required CI setting: $name" > TestResults/ci-private-run.log
+              exit 1
+            fi
+          done
+          dotnet run --no-build -- --treenode-filter '/*/*/*/*[Category=group-preorder]' --report-trx --output Detailed --progress off > TestResults/ci-private-run.log 2>&1
+      - name: Create publishable report
+        id: report
+        if: always()
+        run: python3 ci/publish_report.py TestResults TestResults/ci-public
+      - name: Upload report even when tests fail
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aqa-group-preorder-report
+          path: aqa/restaurant-aqa-framework/TestResults/ci-public/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve failure status
+        if: always()
+        env:
+          TEST_RESULT: ${{ steps.test.outcome }}
+          REPORT_RESULT: ${{ steps.report.outcome }}
+          UPLOAD_RESULT: ${{ steps.upload.outcome }}
+        run: |
+          if [ "$TEST_RESULT" != success ] || [ "$REPORT_RESULT" != success ] || [ "$UPLOAD_RESULT" != success ]; then
+            echo "AQA run failed: test=$TEST_RESULT report=$REPORT_RESULT upload=$UPLOAD_RESULT"
+            exit 1
+          fi

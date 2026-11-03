@@ -1,0 +1,48 @@
+name: AQA Quality
+
+on:
+  push:
+    paths:
+      - 'aqa/restaurant-aqa-framework/**'
+      - '.github/workflows/aqa-quality.yml'
+  pull_request:
+    paths:
+      - 'aqa/restaurant-aqa-framework/**'
+      - '.github/workflows/aqa-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aqa/restaurant-aqa-framework
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check generated and private files are not tracked
+        run: |
+          if git ls-files | grep -E '(^|/)(bin|obj|TestResults)/|(^|/)\.env$|\.feature\.cs$'; then
+            echo 'Generated or private files must not be tracked.'
+            exit 1
+          fi
+      - name: Restore and build
+        run: dotnet build restaurant-aqa-framework.csproj --nologo
+      - name: Check formatting
+        run: dotnet format restaurant-aqa-framework.csproj --verify-no-changes --no-restore
+      - name: Lint homework Gherkin features
+        run: npx --yes --package=gherkin-lint gherkin-lint -c .gherkin-lintrc Features/GroupParticipants.feature Features/GroupSubmission.feature Features/GroupGuestRemoval.feature Features/GroupPreOrderJourney.feature
+      - name: Discover homework tests
+        run: |
+          dotnet run --no-build -- --list-tests --treenode-filter '/*/*/*/*[Category=group-preorder]' > discovery.txt
+          grep '^Test discovery summary:' discovery.txt
+          grep -Eq '^Test discovery summary: found 45 test\(s\)' discovery.txt
