@@ -29,6 +29,9 @@ def failure_kind(result):
     else:
         kind = "Test or setup error"
     for component in ("waiterpreorderpage", "openwaitergrouporder", "guestscompletegroupjourney", "inviteguestthroughui"):
+        line = re.search(rf"\b{component}\.cs:line\s+(\d+)", output)
+        if line:
+            return f"{kind} ({component}.cs:{line.group(1)})"
         if component in output:
             return f"{kind} ({component})"
     return kind
