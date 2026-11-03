@@ -28,8 +28,9 @@ The [combined execution checks](docs/repeatability-and-parallelism.md) passed
 all 45 examples sequentially. Two parallel attempts confirmed concurrency 2,
 but finished with transport failures (44/45 and 43/45 passed); a stable complete
 parallel run is still unconfirmed. The local default remains 1.
-GitHub Actions workflows and a token-safe CI summary are prepared. A real
-GitHub run and the final reviewer guide remain for steps 14–15.
+The [GitHub Actions run](https://github.com/amico3103/marathon2026/actions/runs/41659883656)
+passed all 45 examples and published a token-safe summary. The final reviewer
+guide remains for step 15.
 These fixtures require AWS credentials in addition to the UI/API and waiter settings;
 the required parameters are listed in `.env.example`. The basic smoke test needs no AWS credentials.
 
@@ -108,7 +109,7 @@ Publish your work in your own public Git repository (the link is the deliverable
 
 The test workflow reuses the standing waiter's credentials for `TESTTABLE_WAITER_*`, uses AWS credentials only in the test step, and fixes `MAX_PARALLEL_TESTS=1`. Those AWS credentials must permit the scoped Cognito and DynamoDB fixture lifecycle described in [owned test data](docs/owned-test-data.md). The current AWS account explicitly denies OIDC provider inspection to our local IAM user; GitHub role setup has not been completed. Never put credentials in the repository, in `.env.example`, or in test code.
 
-Download **aqa-group-preorder-report** from the workflow run to open `index.html` and inspect `summary.json`. It lists each scenario and its outcome. The workflow intentionally keeps raw TRX, runner logs, Playwright traces and owned-data journals out of the downloadable artifact because those may contain authentication tokens. A failed test still makes the workflow fail after the summary has been uploaded. A live GitHub execution is the next step; the workflow has only been validated locally so far.
+Download **aqa-group-preorder-report** from the [successful run](https://github.com/amico3103/marathon2026/actions/runs/41659883656) to open `index.html` and inspect `summary.json`: all 45 examples passed. The workflow intentionally keeps raw TRX, runner logs, Playwright traces and owned-data journals out of the downloadable artifact because those may contain authentication tokens. A failed test still makes the workflow fail after the summary has been uploaded. Manual runs can select one tagged example and its expected count for diagnosis; the default is the complete 45-example set. [CI verification notes](docs/ci-and-reporting.md) include the earlier failure and its fix.
 
 ## Presetup instructions
 
